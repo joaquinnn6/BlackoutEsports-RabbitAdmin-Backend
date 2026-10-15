@@ -1,0 +1,20 @@
+name: Verificar microservicio RabbitMQ Admin
+
+on:
+  push:
+    branches: [main, develop, feature-entrega-2-rabbitmq]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - run: mvn --batch-mode verify
+

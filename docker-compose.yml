@@ -1,0 +1,50 @@
+services:
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: blackout-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-blackout}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Define RABBITMQ_PASSWORD en .env}
+    ports:
+      - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - blackout-network
+
+  rabbit-admin-api:
+    build: .
+    container_name: blackout-rabbit-admin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SERVER_PORT:-8085}:8085"
+    environment:
+      SERVER_PORT: 8085
+      RABBITMQ_HOST: blackout-rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-blackout}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Define RABBITMQ_PASSWORD en .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      ENTRA_ISSUER: ${ENTRA_ISSUER:-}
+      ENTRA_AUDIENCE: ${ENTRA_AUDIENCE:-}
+      ENTRA_SCOPE: ${ENTRA_SCOPE:-access_as_user}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - blackout-network
+
+networks:
+  blackout-network:
+    name: blackout-network
+
+volumes:
+  rabbitmq_data:
+
