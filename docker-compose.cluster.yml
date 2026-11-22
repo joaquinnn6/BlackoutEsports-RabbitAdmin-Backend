@@ -23,8 +23,6 @@ services:
     hostname: rabbit2
     restart: unless-stopped
     environment: *rabbit-env
-    depends_on:
-      rabbit1: {condition: service_healthy}
     volumes:
       - rabbit2-data:/var/lib/rabbitmq
       - ./cluster/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
