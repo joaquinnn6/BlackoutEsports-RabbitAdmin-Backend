@@ -2,7 +2,7 @@ name: Verificar microservicio RabbitMQ Admin
 
 on:
   push:
-    branches: [main, develop, feature-entrega-2-rabbitmq]
+    branches: [main, develop, "feature-*"]
   pull_request:
     branches: [main, develop]
 
@@ -18,3 +18,17 @@ jobs:
           cache: maven
       - run: mvn --batch-mode verify
 
+      - name: Levantar y verificar dos nodos agrupados
+        env:
+          RABBITMQ_PASSWORD: ci-only-password
+          RABBITMQ_ERLANG_COOKIE: ci-only-cluster-cookie
+        run: |
+          docker compose -f docker-compose.cluster.yml up -d --wait --wait-timeout 180 rabbit1 rabbit2
+          docker compose -f docker-compose.cluster.yml exec -T rabbit1 rabbitmqctl cluster_status
+          python3 scripts/check_cluster.py
+      - name: Detener infraestructura de pruebas
+        if: always()
+        env:
+          RABBITMQ_PASSWORD: ci-only-password
+          RABBITMQ_ERLANG_COOKIE: ci-only-cluster-cookie
+        run: docker compose -f docker-compose.cluster.yml down -v

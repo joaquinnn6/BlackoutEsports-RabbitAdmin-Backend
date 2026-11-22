@@ -1,0 +1,53 @@
+services:
+  rabbit1:
+    image: rabbitmq:4-management-alpine
+    hostname: rabbit1
+    restart: unless-stopped
+    environment: &rabbit-env
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-blackout}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Define RABBITMQ_PASSWORD}
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:?Define RABBITMQ_ERLANG_COOKIE}
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: +S 2:2
+    volumes:
+      - rabbit1-data:/var/lib/rabbitmq
+      - ./cluster/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    ports: ["127.0.0.1:5672:5672", "127.0.0.1:15672:15672"]
+    healthcheck: &rabbit-health
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+    networks: [blackout-network]
+  rabbit2:
+    image: rabbitmq:4-management-alpine
+    hostname: rabbit2
+    restart: unless-stopped
+    environment: *rabbit-env
+    depends_on:
+      rabbit1: {condition: service_healthy}
+    volumes:
+      - rabbit2-data:/var/lib/rabbitmq
+      - ./cluster/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    ports: ["127.0.0.1:5673:5672", "127.0.0.1:15673:15672"]
+    healthcheck: *rabbit-health
+    networks: [blackout-network]
+  rabbit-admin-api:
+    build: .
+    restart: unless-stopped
+    ports: ["127.0.0.1:8085:8085"]
+    environment:
+      SPRING_RABBITMQ_ADDRESSES: rabbit1:5672,rabbit2:5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-blackout}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Define RABBITMQ_PASSWORD}
+      ENTRA_ISSUER: ${ENTRA_ISSUER:-}
+      ENTRA_AUDIENCE: ${ENTRA_AUDIENCE:-}
+      ENTRA_SCOPE: ${ENTRA_SCOPE:-PanelAdministrativo}
+    depends_on:
+      rabbit2: {condition: service_healthy}
+    networks: [blackout-network]
+networks:
+  blackout-network:
+    name: blackout-network
+volumes:
+  rabbit1-data:
+  rabbit2-data:
