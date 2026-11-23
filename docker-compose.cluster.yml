@@ -1,6 +1,6 @@
 services:
   rabbit1:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.4.1-management-alpine
     hostname: rabbit1
     restart: unless-stopped
     environment: &rabbit-env
@@ -19,7 +19,7 @@ services:
       retries: 30
     networks: [blackout-network]
   rabbit2:
-    image: rabbitmq:4-management-alpine
+    image: rabbitmq:4.4.1-management-alpine
     hostname: rabbit2
     restart: unless-stopped
     environment: *rabbit-env
